@@ -74,18 +74,17 @@ export function AccessKeyFloat() {
       draggable={false}
       onContextMenu={blockMediaMenu}
       onDragStart={blockMediaMenu}
-      className="group relative block w-[128px] cursor-grab overflow-hidden rounded-2xl border border-border bg-background shadow-2xl active:cursor-grabbing sm:w-[154px]"
+      className="relative block w-[128px] cursor-grab bg-transparent active:cursor-grabbing sm:w-[154px]"
       style={{ WebkitUserSelect: "none", WebkitTouchCallout: "none" } as React.CSSProperties}
     >
-      <button type="button" aria-label="Close access key promo" onPointerDown={(event) => event.stopPropagation()} onClick={close} className="absolute -right-2 -top-2 z-20 flex size-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-lg hover:text-foreground"><X className="size-4" /></button>
-      <div className="pointer-events-none absolute inset-0 z-10 rounded-2xl ring-1 ring-inset ring-white/10" />
+      <button type="button" aria-label="Close access key promo" onPointerDown={(event) => event.stopPropagation()} onClick={close} className="absolute -right-2 -top-2 z-20 flex size-7 items-center justify-center rounded-full border border-border bg-background/95 text-muted-foreground shadow-lg backdrop-blur hover:text-foreground"><X className="size-4" /></button>
       <img
         src="/access-key.gif"
         alt="Get access key"
         draggable={false}
         onContextMenu={blockMediaMenu}
         onDragStart={blockMediaMenu}
-        className="pointer-events-none block w-full select-none rounded-2xl"
+        className="pointer-events-none block w-full select-none bg-transparent"
         style={{ WebkitUserSelect: "none", WebkitTouchCallout: "none" } as React.CSSProperties}
       />
     </Link>
