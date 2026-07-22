@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   creator: "XyStudio",
   publisher: "XyStudio",
   keywords: ["Android compiler", "APK builder", "Flutter builder", "Jetpack Compose", "Kotlin", "Java", "Dart"],
+  other: {
+    "google-adsense-account": "ca-pub-6232015754716037"
+  },
   icons: { icon: "/icon.svg", shortcut: "/icon.svg", apple: "/icon.svg" },
   openGraph: {
     type: "website",
