@@ -16,6 +16,10 @@ export async function POST(request: Request) {
     const blob = await put(`build-input/${crypto.randomUUID()}-${file.name}`, file, { access: "public", addRandomSuffix: false });
     return NextResponse.json({ url: blob.url });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Upload failed" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Upload failed";
+    const friendly = message.toLowerCase().includes("store does not exist")
+      ? "Vercel Blob store tidak terhubung ke project ini. Di Vercel buka Storage → Blob → Connect Store ke androidbuilderfrontend, pastikan BLOB_READ_WRITE_TOKEN/BLOB_STORE_ID tersedia, lalu Redeploy."
+      : message;
+    return NextResponse.json({ error: friendly }, { status: 500 });
   }
 }
