@@ -20,6 +20,8 @@
     "next-themes": "latest",
     "tailwindcss": "latest",
     "react": "latest",
+    "postcss": "latest",
+    "@tailwindcss/postcss": "latest",
     "react-dom": "latest",
     "tailwind-merge": "latest"
   },
