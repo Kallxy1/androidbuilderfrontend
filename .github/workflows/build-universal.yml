@@ -1,0 +1,131 @@
+name: Build Universal Project
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_url:
+        description: Public temporary URL of the project ZIP
+        required: true
+        type: string
+      project_type:
+        description: Project type
+        required: true
+        type: choice
+        options: [android, flutter, java, kotlin, dart]
+      variant:
+        description: Build variant
+        required: true
+        default: debug
+        type: choice
+        options: [debug, release]
+      output:
+        description: Requested output
+        required: true
+        default: apk
+        type: choice
+        options: [apk, aab, jar, zip]
+      sdk:
+        description: Android SDK API level
+        required: true
+        default: "35"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Download ZIP
+        run: |
+          curl -fL --retry 3 "${{ inputs.source_url }}" -o project.zip
+          mkdir source
+          unzip -q project.zip -d source
+          find source -maxdepth 2 -type f | head -50
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Setup Android SDK
+        if: inputs.project_type == 'android' || inputs.project_type == 'flutter'
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        if: inputs.project_type == 'android' || inputs.project_type == 'flutter'
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platform-tools" "platforms;android-${{ inputs.sdk }}" "build-tools;35.0.0"
+
+      - name: Setup Flutter
+        if: inputs.project_type == 'flutter'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Detect project root
+        id: root
+        shell: bash
+        run: |
+          ROOT=$(find source -name settings.gradle -o -name settings.gradle.kts -o -name pubspec.yaml | head -1 | xargs -r dirname)
+          ROOT=${ROOT:-source}
+          echo "path=$ROOT" >> "$GITHUB_OUTPUT"
+          echo "Using project root: $ROOT"
+
+      - name: Build project
+        working-directory: ${{ steps.root.outputs.path }}
+        shell: bash
+        run: |
+          TYPE="${{ inputs.project_type }}"
+          VARIANT="${{ inputs.variant }}"
+          if [ "$TYPE" = "android" ]; then
+            chmod +x ./gradlew
+            if [ "$VARIANT" = "release" ] && [ "${{ inputs.output }}" = "aab" ]; then
+              ./gradlew bundleRelease --no-daemon
+            elif [ "$VARIANT" = "release" ]; then
+              ./gradlew assembleRelease --no-daemon
+            else
+              ./gradlew assembleDebug --no-daemon
+            fi
+          elif [ "$TYPE" = "flutter" ]; then
+            flutter pub get
+            if [ "$VARIANT" = "release" ] && [ "${{ inputs.output }}" = "aab" ]; then
+              flutter build appbundle --release
+            elif [ "$VARIANT" = "release" ]; then
+              flutter build apk --release
+            else
+              flutter build apk --debug
+            fi
+          elif [ "$TYPE" = "dart" ]; then
+            dart pub get
+            dart compile exe bin/main.dart -o build/app
+          elif [ "$TYPE" = "java" ] || [ "$TYPE" = "kotlin" ]; then
+            chmod +x ./gradlew 2>/dev/null || true
+            ./gradlew build --no-daemon
+          fi
+
+      - name: Show outputs
+        if: always()
+        run: |
+          find source -type f \( -name "*.apk" -o -name "*.aab" -o -name "*.jar" -o -name "app" \) -print || true
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: |
+            source/**/build/outputs/**/*.apk
+            source/**/build/outputs/**/*.aab
+            source/**/build/libs/**/*.jar
+            source/**/build/app
+          if-no-files-found: error
+          retention-days: 3

@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+:root { color-scheme: light; --background: #fafafa; --foreground: #111113; --muted: #f1f1f2; --muted-foreground: #71717a; --border: #e4e4e7; }
+.dark { color-scheme: dark; --background: #09090b; --foreground: #fafafa; --muted: #18181b; --muted-foreground: #a1a1aa; --border: #27272a; }
+@theme inline { --color-background: var(--background); --color-foreground: var(--foreground); --color-muted: var(--muted); --color-muted-foreground: var(--muted-foreground); --color-border: var(--border); }
+* { box-sizing: border-box; }
+html { background: var(--background); }
+body { margin: 0; min-height: 100vh; background: var(--background); color: var(--foreground); font-family: "Inter", "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+button, input, select { font: inherit; }
+.card { border: 1px solid var(--border); background: color-mix(in srgb, var(--background) 92%, var(--foreground)); border-radius: 20px; }
+.status-badge { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border); border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 700; text-transform: capitalize; }
+.status-badge svg { width: 14px; height: 14px; }
+.status-success { color: #16a34a; }
+.dark .status-success { color: #86efac; }
+.status-failed { color: #dc2626; }
+.dark .status-failed { color: #fca5a5; }
+.status-running { color: #ca8a04; }
+.dark .status-running { color: #fde047; }
+.status-idle { color: var(--muted-foreground); }
+.field { width: 100%; height: 44px; border: 1px solid var(--border); border-radius: 12px; background: var(--background); color: var(--foreground); padding: 0 12px; outline: none; }
+.field:focus { border-color: var(--foreground); box-shadow: 0 0 0 3px color-mix(in srgb, var(--foreground) 12%, transparent); }
+.label { display: block; margin-bottom: 7px; color: var(--muted-foreground); font-size: 12px; font-weight: 700; }
+.btn { transition: opacity .2s, background .2s; }
+.dropzone { border: 1px dashed var(--border); transition: border-color .2s, background .2s; }
+.dropzone:hover { border-color: var(--foreground); background: var(--muted); }
