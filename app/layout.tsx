@@ -3,7 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const siteUrl = "https://build.xystudio.my.id";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://build.xystudio.my.id";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
