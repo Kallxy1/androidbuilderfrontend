@@ -15,7 +15,7 @@ export function AccessKeyFloat() {
   return <div className="fixed z-40 touch-none select-none" style={{ left: position.x, top: position.y }} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end}>
     <Link href="/access-key" aria-label="Get access key" className="group relative block w-[128px] cursor-grab active:cursor-grabbing sm:w-[154px]">
       <button type="button" aria-label="Close access key promo" onPointerDown={(event) => event.stopPropagation()} onClick={close} className="absolute -right-2 -top-2 z-10 flex size-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-lg hover:text-foreground"><X className="size-4" /></button>
-      <img src="/access-key.gif" alt="Get access key" className="block w-full rounded-2xl shadow-2xl" />
+      <img src="/access-key.gif" alt="Get access key" className="block w-full rounded-2xl" />
     </Link>
   </div>;
 }
