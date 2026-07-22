@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 import { NextResponse } from "next/server";
 import { authorized, githubConfig, githubFetch, unauthorizedResponse } from "@/lib/github";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -9,6 +10,8 @@ const allowedOutputs = [".apk", ".aab", ".jar", ".zip"];
 
 export async function GET(request: Request) {
   if (!authorized(request)) return unauthorizedResponse();
+  const limited = rateLimit(request, "artifact", 20, 10 * 60 * 1000);
+  if (!limited.ok) return NextResponse.json({ error: "Terlalu banyak request download." }, { status: 429 });
   try {
     const runId = new URL(request.url).searchParams.get("runId");
     if (!runId || !/^\d+$/.test(runId)) {
