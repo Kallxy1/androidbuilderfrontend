@@ -1,8 +1,22 @@
 import Link from "next/link";
-import { Check, Clock3, KeyRound, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Clock3, KeyRound, ShieldCheck } from "lucide-react";
 
 export default async function AccessKeyCard({ params }: { params: Promise<{ slug: string; hash: string }> }) {
   const { slug, hash } = await params;
-  return <main className="mx-auto min-h-screen max-w-xl px-5 py-10 sm:py-16"><Link href="/" className="text-sm text-muted-foreground hover:text-foreground">← Kembali ke BuildBox</Link><section className="card mt-8 p-6 sm:p-8"><div className="mb-6 flex items-center gap-3"><div className="flex size-12 items-center justify-center rounded-2xl bg-foreground text-background"><KeyRound className="size-6" /></div><div><h1 className="text-xl font-black">Access Key Card</h1><p className="text-xs text-muted-foreground">Protected link · {slug}</p></div></div><div className="rounded-2xl border border-border bg-muted p-5"><div className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">Your access key</div><div className="select-all break-all font-mono text-lg font-bold">BUILD-KEY-REWARD-PENDING</div><Button className="mt-4 w-full" onClick={() => navigator.clipboard?.writeText("BUILD-KEY-REWARD-PENDING")}><Check className="size-4" />Copy access key</Button></div><div className="mt-5 grid gap-3 text-sm text-muted-foreground"><div className="flex gap-3"><Clock3 className="size-4 shrink-0" />Link akan expired otomatis setelah masa berlaku selesai.</div><div className="flex gap-3"><ShieldCheck className="size-4 shrink-0" />Hash: <span className="truncate font-mono">{hash}</span></div></div><p className="mt-6 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-xs text-yellow-700 dark:text-yellow-300">Card ini adalah struktur dynamic route. Penerbitan key real setelah Monetag postback dan KV/Upstash dikonfigurasi.</p></section><p className="mt-6 text-center text-xs text-muted-foreground">Made XyStudio · Dev XyKelOmex</p></main>;
+  return <main className="mx-auto min-h-screen max-w-xl px-5 py-10 sm:py-16">
+    <Link href="/access-key" className="text-sm text-muted-foreground hover:text-foreground">← Kembali ke Access Key</Link>
+    <section className="card mt-8 p-6 sm:p-8">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex size-12 items-center justify-center rounded-2xl bg-foreground text-background"><KeyRound className="size-6" /></div>
+        <div><h1 className="text-xl font-black">Access Key Info</h1><p className="text-xs text-muted-foreground">Protected info · {slug}</p></div>
+      </div>
+      <div className="rounded-2xl border border-border bg-muted p-5 text-sm leading-6 text-muted-foreground">
+        Halaman ini hanya untuk informasi dynamic route lama. Access key asli sekarang diterbitkan lewat route aman <span className="font-mono">/key/[duration]/[claim]/[signature]</span> setelah reward diverifikasi.
+      </div>
+      <div className="mt-5 grid gap-3 text-sm text-muted-foreground">
+        <div className="flex gap-3"><Clock3 className="size-4 shrink-0" />Claim link dibuat sekali pakai secara server-side dan expired cepat.</div>
+        <div className="flex gap-3"><ShieldCheck className="size-4 shrink-0" />Hash route: <span className="truncate font-mono">{hash}</span></div>
+      </div>
+    </section>
+  </main>;
 }
