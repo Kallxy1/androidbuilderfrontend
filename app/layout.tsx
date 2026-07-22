@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -31,5 +32,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="id" suppressHydrationWarning><body><ThemeProvider>{children}</ThemeProvider></body></html>;
+  return <html lang="id" suppressHydrationWarning><body><ThemeProvider>{children}</ThemeProvider><Script src="https://quge5.com/88/tag.min.js" data-zone="262527" strategy="afterInteractive" data-cfasync="false" /></body></html>;
 }
