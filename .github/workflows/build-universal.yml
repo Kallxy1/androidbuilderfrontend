@@ -28,22 +28,55 @@ on:
         description: Android SDK API level
         required: true
         default: "35"
+        type: choice
+        options: ["34", "35", "36"]
+      build_id:
+        description: BuildBox tracking id
+        required: false
         type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: buildbox-${{ github.event.inputs.build_id || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    env:
+      GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx3g -Dorg.gradle.parallel=true -Dorg.gradle.caching=true
     steps:
-      - name: Download ZIP
+      - name: Start build timer
+        run: echo "BUILD_START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Download and validate ZIP
+        shell: bash
         run: |
-          curl -fL --retry 3 "${{ inputs.source_url }}" -o project.zip
+          set -euo pipefail
+          echo "Build id: ${{ inputs.build_id }}"
+          curl -fL --retry 3 --connect-timeout 20 "${{ inputs.source_url }}" -o project.zip
+          MAX_SIZE=$((100 * 1024 * 1024))
+          SIZE=$(stat -c%s project.zip)
+          if [ "$SIZE" -gt "$MAX_SIZE" ]; then echo "ZIP too large: $SIZE"; exit 1; fi
+          if unzip -l project.zip | awk '{print $4}' | grep -E '(^/|(^|/)\.\.(/|$))'; then echo "Unsafe ZIP paths detected"; exit 1; fi
+          COUNT=$(zipinfo -1 project.zip | wc -l | tr -d ' ')
+          if [ "$COUNT" -gt 5000 ]; then echo "Too many files in ZIP: $COUNT"; exit 1; fi
           mkdir source
           unzip -q project.zip -d source
-          find source -maxdepth 2 -type f | head -50
+          find source -maxdepth 3 -type f | head -80
+
+      - name: Detect project root
+        id: root
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=$(find source \( -name settings.gradle -o -name settings.gradle.kts -o -name pubspec.yaml -o -name pom.xml \) -print -quit | xargs -r dirname)
+          ROOT=${ROOT:-source}
+          echo "path=$ROOT" >> "$GITHUB_OUTPUT"
+          echo "Using project root: $ROOT"
 
       - name: Setup JDK 17
         uses: actions/setup-java@v4
@@ -51,6 +84,10 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: gradle
+          cache-dependency-path: |
+            source/**/*.gradle
+            source/**/*.gradle.kts
+            source/**/gradle-wrapper.properties
 
       - name: Setup Android SDK
         if: inputs.project_type == 'android' || inputs.project_type == 'flutter'
@@ -58,9 +95,10 @@ jobs:
 
       - name: Install Android SDK packages
         if: inputs.project_type == 'android' || inputs.project_type == 'flutter'
+        shell: bash
         run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platform-tools" "platforms;android-${{ inputs.sdk }}" "build-tools;35.0.0"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-${{ inputs.sdk }}" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Setup Flutter
         if: inputs.project_type == 'flutter'
@@ -69,63 +107,59 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Setup Dart
+        if: inputs.project_type == 'dart'
+        uses: dart-lang/setup-dart@v1
 
-      - name: Detect project root
-        id: root
-        shell: bash
-        run: |
-          ROOT=$(find source -name settings.gradle -o -name settings.gradle.kts -o -name pubspec.yaml | head -1 | xargs -r dirname)
-          ROOT=${ROOT:-source}
-          echo "path=$ROOT" >> "$GITHUB_OUTPUT"
-          echo "Using project root: $ROOT"
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
 
       - name: Build project
         working-directory: ${{ steps.root.outputs.path }}
         shell: bash
         run: |
+          set -euo pipefail
           TYPE="${{ inputs.project_type }}"
           VARIANT="${{ inputs.variant }}"
+          OUTPUT="${{ inputs.output }}"
+          gradle_cmd() {
+            if [ -f ./gradlew ]; then chmod +x ./gradlew; ./gradlew "$@" --no-daemon --build-cache; else gradle "$@" --no-daemon --build-cache; fi
+          }
           if [ "$TYPE" = "android" ]; then
-            chmod +x ./gradlew
-            if [ "$VARIANT" = "release" ] && [ "${{ inputs.output }}" = "aab" ]; then
-              ./gradlew bundleRelease --no-daemon
-            elif [ "$VARIANT" = "release" ]; then
-              ./gradlew assembleRelease --no-daemon
-            else
-              ./gradlew assembleDebug --no-daemon
-            fi
+            if [ "$VARIANT" = "release" ] && [ "$OUTPUT" = "aab" ]; then gradle_cmd bundleRelease; elif [ "$VARIANT" = "release" ]; then gradle_cmd assembleRelease; else gradle_cmd assembleDebug; fi
           elif [ "$TYPE" = "flutter" ]; then
             flutter pub get
-            if [ "$VARIANT" = "release" ] && [ "${{ inputs.output }}" = "aab" ]; then
-              flutter build appbundle --release
-            elif [ "$VARIANT" = "release" ]; then
-              flutter build apk --release
-            else
-              flutter build apk --debug
-            fi
+            if [ "$VARIANT" = "release" ] && [ "$OUTPUT" = "aab" ]; then flutter build appbundle --release; elif [ "$VARIANT" = "release" ]; then flutter build apk --release; else flutter build apk --debug; fi
           elif [ "$TYPE" = "dart" ]; then
             dart pub get
+            mkdir -p build
             dart compile exe bin/main.dart -o build/app
           elif [ "$TYPE" = "java" ] || [ "$TYPE" = "kotlin" ]; then
-            chmod +x ./gradlew 2>/dev/null || true
-            ./gradlew build --no-daemon
+            if [ -f pom.xml ]; then mvn -B package; else gradle_cmd build; fi
           fi
 
-      - name: Show outputs
+      - name: Collect outputs
         if: always()
+        shell: bash
         run: |
-          find source -type f \( -name "*.apk" -o -name "*.aab" -o -name "*.jar" -o -name "app" \) -print || true
+          mkdir -p final-output
+          find source -type f \( -name "*.apk" -o -name "*.aab" -o -name "*.jar" -o -path "*/build/app" \) -print -exec cp {} final-output/ \; || true
+          if [ "${{ inputs.output }}" = "zip" ]; then
+            (cd final-output && zip -qr ../build-output.zip .) || true
+          fi
+          echo "Outputs:"
+          find final-output -type f -maxdepth 1 -print || true
+          [ -f build-output.zip ] && ls -lh build-output.zip || true
+          END=$(date +%s); echo "Total workflow seconds: $((END-BUILD_START))"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: build-output
           path: |
-            source/**/build/outputs/**/*.apk
-            source/**/build/outputs/**/*.aab
-            source/**/build/libs/**/*.jar
-            source/**/build/app
+            final-output/*
+            build-output.zip
           if-no-files-found: error
           retention-days: 3
