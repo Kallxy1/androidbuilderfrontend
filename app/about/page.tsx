@@ -1,0 +1,3 @@
+import Link from "next/link";
+
+export default function AboutPage() { return <main className="mx-auto max-w-2xl px-5 py-12"><Link href="/" className="text-sm text-muted-foreground">← Kembali</Link><h1 className="mt-8 text-4xl font-black">About BuildBox</h1><p className="mt-4 leading-7 text-muted-foreground">BuildBox adalah personal compiler untuk membantu membuat APK, AAB, JAR, dan output project lain menggunakan GitHub Actions.</p><div className="card mt-8 p-6 text-sm leading-7 text-muted-foreground"><p>Made XyStudio.</p><p>Dev: XyKelOmex.</p><p>BuildBox mengutamakan proses yang sederhana, transparan, dan mudah dipantau lewat terminal log.</p></div></main>; }
