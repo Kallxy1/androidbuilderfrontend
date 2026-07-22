@@ -12,7 +12,12 @@ export async function GET(request: Request) {
     const response = await githubFetch(`/repos/${config.owner}/${config.repo}/actions/runs/${runId}`);
     const data = await response.json();
     if (!response.ok) return NextResponse.json({ error: data.message || "Status failed" }, { status: response.status });
-    return NextResponse.json({ status: data.status === "completed" ? (data.conclusion === "success" ? "success" : data.conclusion || "failure") : data.status, url: data.html_url });
+    const jobsResponse = await githubFetch(`/repos/${config.owner}/${config.repo}/actions/runs/${runId}/jobs?per_page=20`);
+    const jobsData = await jobsResponse.json();
+    const job = jobsData.jobs?.[0];
+    const activeStep = job?.steps?.find((step: { status: string }) => step.status === "in_progress") || job?.steps?.find((step: { conclusion: string | null }) => step.conclusion === null);
+    const status = data.status === "completed" ? (data.conclusion === "success" ? "success" : data.conclusion || "failure") : data.status;
+    return NextResponse.json({ status, url: data.html_url, currentStep: activeStep?.name || job?.name || status, steps: job?.steps?.map((step: { name: string; status: string; conclusion: string | null }) => ({ name: step.name, status: step.status, conclusion: step.conclusion })) || [] });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Status failed" }, { status: 500 });
   }
