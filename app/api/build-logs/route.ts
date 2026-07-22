@@ -1,12 +1,15 @@
 import JSZip from "jszip";
 import { NextResponse } from "next/server";
 import { authorized, githubConfig, githubFetch, unauthorizedResponse } from "@/lib/github";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
   if (!authorized(request)) return unauthorizedResponse();
+  const limited = rateLimit(request, "logs", 60, 5 * 60 * 1000);
+  if (!limited.ok) return NextResponse.json({ error: "Log polling terlalu sering." }, { status: 429 });
   try {
     const runId = new URL(request.url).searchParams.get("runId");
     if (!runId || !/^\d+$/.test(runId)) return NextResponse.json({ error: "Valid runId is required" }, { status: 400 });
