@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 const owner = process.env.GITHUB_OWNER;
 const repo = process.env.GITHUB_REPO;
 const token = process.env.GITHUB_TOKEN;
-const workflow = process.env.GITHUB_WORKFLOW || "build-universal.yml";
+// Workflow ID is stable and avoids GitHub's 404 when a filename/env value is stale.
+const workflow = process.env.GITHUB_WORKFLOW || "317945091";
 const ref = process.env.GITHUB_REF || "main";
 
 export function githubConfig() {

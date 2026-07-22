@@ -24,3 +24,8 @@ button, input, select { font: inherit; }
 .btn { transition: opacity .2s, background .2s; }
 .dropzone { border: 1px dashed var(--border); transition: border-color .2s, background .2s; }
 .dropzone:hover { border-color: var(--foreground); background: var(--muted); }
+@media (max-width: 640px) {
+  h1 { font-size: 2.5rem; line-height: 1.02; }
+  .card { border-radius: 16px; }
+  .status-badge { max-width: 45vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}

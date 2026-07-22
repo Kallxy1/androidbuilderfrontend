@@ -5,7 +5,7 @@ import JSZip from "jszip";
 import { AlertTriangle, CheckCircle2, FileArchive, UploadCloud } from "lucide-react";
 
 type Props = { file: File | null; onFile: (file: File | null) => void };
-type Report = { detected: string[]; found: string[]; missing: string[]; warnings: string[] };
+type Report = { detected: string[]; found: string[]; missing: string[]; warnings: string[]; suggestions: string[] };
 
 export function ProjectInspector({ file, onFile }: Props) {
   const [report, setReport] = useState<Report | null>(null);
@@ -13,12 +13,12 @@ export function ProjectInspector({ file, onFile }: Props) {
 
   async function inspect(next: File | null) {
     onFile(next); setReport(null); if (!next) return;
-    if (!next.name.toLowerCase().endsWith(".zip")) { setReport({ detected: [], found: [], missing: ["File harus berformat .zip"], warnings: [] }); return; }
+    if (!next.name.toLowerCase().endsWith(".zip")) { setReport({ detected: [], found: [], missing: ["File harus berformat .zip"], warnings: [], suggestions: ["Pilih file ZIP project yang benar."] }); return; }
     setReading(true);
     try {
       const zip = await JSZip.loadAsync(await next.arrayBuffer());
       const all = Object.keys(zip.files).map((path) => path.toLowerCase());
-      const found = []; const missing = []; const detected = []; const warnings = [];
+      const found = []; const missing = []; const detected = []; const warnings = []; const suggestions = [];
       const has = (name: string) => all.some((path) => path.endsWith(name) || path.includes(`/${name}`));
       if (has("pubspec.yaml")) { detected.push("Flutter / Dart"); found.push("pubspec.yaml"); if (!has("android")) warnings.push("Folder android/ tidak ditemukan; Flutter APK mungkin gagal."); }
       if (has("settings.gradle") || has("settings.gradle.kts") || has("gradlew")) { detected.push("Gradle Android/JVM"); found.push(has("gradlew") ? "gradlew" : "settings.gradle"); if (!has("app")) warnings.push("Folder app/ tidak ditemukan; bukan struktur Android standar."); }
@@ -30,8 +30,10 @@ export function ProjectInspector({ file, onFile }: Props) {
       if (!has("gradlew") && (detected.includes("Gradle Android/JVM") || detected.includes("Jetpack Compose / Compose dependency"))) missing.push("gradlew tidak ada; upload Gradle Wrapper agar build konsisten.");
       if (!has("settings.gradle") && !has("settings.gradle.kts") && detected.includes("Gradle Android/JVM")) missing.push("settings.gradle(.kts) tidak ditemukan.");
       if (!has("pubspec.yaml") && detected.includes("Flutter / Dart")) missing.push("pubspec.yaml tidak ditemukan.");
-      setReport({ detected: [...new Set(detected)], found: [...new Set(found)], missing: [...new Set(missing)], warnings: [...new Set(warnings)] });
-    } catch { setReport({ detected: [], found: [], missing: ["ZIP rusak atau tidak bisa dibaca."], warnings: [] }); }
+      if (missing.length) suggestions.push(`Saran otomatis: tambahkan ${missing.join(" ")}`);
+      if (warnings.length) suggestions.push("Saran otomatis: cek struktur project dan upload ulang ZIP setelah file penting ditambahkan.");
+      setReport({ detected: [...new Set(detected)], found: [...new Set(found)], missing: [...new Set(missing)], warnings: [...new Set(warnings)], suggestions: [...new Set(suggestions)] });
+    } catch { setReport({ detected: [], found: [], missing: ["ZIP rusak atau tidak bisa dibaca."], warnings: [], suggestions: ["Buat ulang ZIP dari folder project yang valid."] }); }
     finally { setReading(false); }
   }
 
@@ -48,6 +50,7 @@ export function ProjectInspector({ file, onFile }: Props) {
       {report.found.length > 0 && <div className="text-muted-foreground">Ditemukan: {report.found.join(", ")}</div>}
       {report.missing.map((item) => <div className="flex gap-2 text-red-600 dark:text-red-400" key={item}><AlertTriangle className="size-4 shrink-0" /><span>Kurang: {item}</span></div>)}
       {report.warnings.map((item) => <div className="flex gap-2 text-yellow-600 dark:text-yellow-400" key={item}><AlertTriangle className="size-4 shrink-0" /><span>Peringatan: {item}</span></div>)}
+      {report.suggestions.map((item) => <div className="rounded-lg border border-border bg-background/60 p-2 text-muted-foreground" key={item}>💡 {item}</div>)}
       {report.missing.length === 0 && report.warnings.length === 0 && <div className="text-green-600 dark:text-green-400">Struktur dasar terlihat siap untuk build.</div>}
     </div>}
   </div>;
