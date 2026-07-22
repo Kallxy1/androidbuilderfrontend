@@ -33,5 +33,5 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="id" suppressHydrationWarning><body><ThemeProvider>{children}</ThemeProvider><Script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6232015754716037" crossOrigin="anonymous" strategy="afterInteractive" />
-      <Script src="https://quge5.com/88/tag.min.js" data-zone="262527" strategy="afterInteractive" data-cfasync="false" /></body></html>;
+    </body></html>;
 }
